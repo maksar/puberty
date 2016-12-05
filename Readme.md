@@ -1,4 +1,4 @@
-# How to make your inner-programmer beard longer with property-based testing.
+# Как отрастить "внутреннюю бороду" через инвариантное тестирование
 
 ## Введение
 
@@ -182,7 +182,6 @@ claim "Workflow should remain in its bounds"
 ```elm
 ✗ Workflow should remain in its bounds
 
-
     On check 3, found counterexample:
       [User { name = "", active = True, permissions = Array.fromList [VOTE] },
        User { name = "", active = True, permissions = Array.fromList [NONE,FORCE] },
@@ -267,7 +266,6 @@ claim "Same user cannot vote twice"
 ```elm
 ✗ Same user cannot vote twice
 
-
     On check 1, found counterexample:
       (User { name = "", active = False, permissions = Array.fromList [NONE,VOTE] },Reject)
     Expected:   1
@@ -279,7 +277,6 @@ claim "Same user cannot vote twice"
 ```elm
 Running 4 tests. To reproduce these results, run: elm-test --seed 2042167370
 
-
 TEST RUN PASSED
 
 Duration: 5 ms
@@ -289,3 +286,10 @@ Failed:   0
 
 ## Заключение
 
+При помощи всего двух простых инвариантов удалось обнаружить несколько нетривиальных проблем в реализации `workflow`-а. Их обнаружение традиционными способами достаточно проблематично – разработчик может и проверит, что голосовать второй раз на одном и том же шаге не получится, однако вряд-ли он попытается сделать `reject` сразу после голосования в коде unit тестов. К слову, в `ruby` реализации, вдоль и поперек проверенной мутационным тестированием, обнаружились эти же дефекты ;)
+
+Библиотеки для property-based тестирования существуют не только для полностью функциональных языков программирования, в `ruby` это [rantly](https://github.com/abargnesi/rantly) и [propr](https://github.com/kputnam/propr), в `python` – [hypothesis](https://github.com/HypothesisWorks/hypothesis-python), в `Java` – [JavaQuickCheck](https://java.net/projects/quickcheck/pages/Home) и т.д.
+
+Главным препятствием к использованию property-based тестов я вижу отнюдь не сложность формулирования инвариантов (хотя это действительно не просто) и даже не отсутствие развитого инструментария в некоторых языках программирования, а именно недостаточную осведомленность разработчиков. Надеюсь, примером с `workflow`-ом у меня вышло пробудить заинтересованность и обратить внимание на тему инвариантного тестирования.
+
+Исходный код на языке `ELM` можно отыскать в публичном [репозитории](https://github.com/maksar/elm-workflow).
