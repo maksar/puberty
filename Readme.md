@@ -1,22 +1,22 @@
 # How to Man Up Using Property-Based Testing
 
-Modern software development is impossible without automated tests. These include basic Unit and Integration tests, complex Performance и Penetration tests, and many other ways of checking programs even before the testing process begins. Managers have long ago stopped contesting the value of automated tests. Teams practicing test automation and following TDD and BDD methodologies are faster to deliver working systems with fewer errors, which allows them to beat competition on the overcrowded market of commercial software system development.
+Modern software development is impossible without automated tests. These include basic Unit and Integration tests, complex Performance и Penetration tests, and many other ways of checking programs even before the manual testing process begins. Managers have long ago stopped contesting the value of automated tests. Teams practicing test automation and following TDD and BDD methodologies are faster to deliver working systems with fewer errors, which allows them to beat competition on the overcrowded market of commercial software system development.
 
-There are areas of development where the main focal point is the quality and performance stability of the entire system or its individual parts. In such cases, developers must use more powerful and rigorous tools and methods for automated code testing. Excellent examples of these programs are two verification methods, utilizing approaches orthogonal to each other: mutation testing and property-based testing.
+There are areas of development where the main focal point is the quality and stability of the entire system or its individual parts. In such cases, developers must use more powerful and rigorous tools and methods for automated code testing. Excellent examples are – orthogonal by its nature verification methods: mutation testing and property-based testing.
 
 ![](/images/data-program-result.png?raw=true)
 
-Mutation testing boils down to deliberately changing program code in all possible ways and later verifying the fact that launching tests using modified code caused an error. If the program code change does not cause any of the unit or integration test to “fall”, one can conclude that either the variable portion of the code is not used at all, or the tests do not contain an example triggering the launch of this portion of the code. In both cases, it is necessary to pay attention to the comprehensiveness of the tests, or code quality.
+Mutation testing boils down to deliberately changing program code in all possible ways and later verifying the fact that launching tests using modified code caused an error. If the program code change does not cause any of the unit or integration test to “fall”, one can conclude that either the certain portion of the code is not used at all, or the tests do not contain an example triggering the launch of this portion of the code. In both cases, it is necessary to pay attention to the comprehensiveness of the tests, or code quality.
 
-Property-based testing works in a different way: the code remains the same, the data changes. The method boils down to generating pseudo-random data supplied to the program input and subsequently checking the set of properties (invariants) by verifying the result. An example of the most basic invariant is absence of exceptional situations during runtime. That is, the program is executed without crashes, regardless of what has been applied to the input.
+Property-based testing works in a different way: the code remains the same, the data changes. The essense of the method is to generate pseudo-random data supplied to the program input and subsequently check the set of properties (invariants) by verifying the result. An example of the most basic invariant is absence of exceptions during execution. That is, the program is executed without crashes, regardless of what has been applied to the input.
 
 So, changes occur to either the data incoming to the program input, or the very structure of the program. Both methods are quite complex in use but very powerful tools. The purpose of this publication is to get acquainted with the basis and peculiarities of property-based testing by creating a Workflow-engine using `ELM` functional programming language.
 
-## Strict Typification and Type Inference
+## Strict Typing and Type Inference
 
-`ELM` is a statically typed functional programming language, which means arguments and the function’s returned value in `ELM` are always described by specific data types. Moreover, in `ELM` all functions are “clean”, that is, they contain no “side effects”. In practice, this means that programs written in `ELM` are easier to verify: calling an arbitrary function with the same set of arguments always returns the same result, without changing the overall state of the system.
+`ELM` is a statically typed functional programming language, which means arguments and the function’s returned value in `ELM` are always described by specific data types. Moreover, in `ELM` all functions are “pure”, that is, they contain no “side effects”. In practice, this means that programs written in `ELM` are easier to verify: calling an arbitrary function with the same set of arguments always returns the same result, without changing the overall state of the system.
 
-To a certain extent, these advantages are inherent to many functional languages. But there is a catch: developers require discipline and the ability to think in a “functional” style. No more returning from the function `null` where it’s convenient. No more tricks with obvious type conversion. Developers need to pay more attention to modeling states and processes from the subject area, as well as make sure that it’s impossible to express unacceptable states of the model in the code.
+To a certain extent, these advantages are inherent to many functional languages. But nothing comes for free: developers need to be more disciplined and be able to think in a “functional” way. No more returning `null` from the function where it’s convenient. No more tricks with explicit type casting. Developers need to pay more attention to modeling states and processes withing the business domain, as well as make sure that it’s impossible to express unacceptable states of the model in the code.
 
 ## Formulating the Problem
 
@@ -37,32 +37,29 @@ No more useless chatter, show me the code! OK, OK. Let’s look at the example o
 
 For the source code to be easier to understand, I decided not to reinvent the wheel and attempted to convert code from [`ruby`](https://github.com/maksar/mentat/blob/master/version_6/workflow.rb) into `ELM` one-to-one. Of course, the result doesn’t look anything like the original since both the syntax and the approach are completely different. But hopefully this will provide an opportunity to appeal to the more familiar imperative `ruby` if difficulties arise.
 
-## Types of Data
+## Data Types
 
 Let's start with the definition of the most important type – `Workflow`. It’s a structure (record), consisting of a set of fields:
 
 ```elm
 type alias Workflow =
-    { stepsConfig : Array Int -- an array of even numbers containing quantity of votes 
-                              -- necessary at every step
-    , currentStep : Int       -- current step number, where current workflow is
-    , votes : Array Bucket    -- an array of a user plurality, in other words, a list of users,
-                              -- who voted at each of the steps
+    { stepsConfig : Array Int -- an array of thresholds for each step
+    , currentStep : Int       -- step number, on which workflow currently is
+    , votes : Array Bucket    -- an array of a vote buckets -- users, who voted on each of the steps
     }
 ```
 
-Let’s define `User` in a similar way. Please note that `User` is a complete type, unlike `Workflow`, which is essentially a named data structure. The first mention of `User` is the name of the type, and the second is the name of the type constructor. In most cases, developers specifically name them in the same way for convenience.
+Let’s define `User` in a similar way. Please note that `User` is a full-featured type, unlike `Workflow`, which is essentially a named data record. The first mention of `User` in the definition is the name of the type, and the second is the name of the type constructor. In most cases, developers make those names equal for convenience.
 
 ```elm
 type User
     = User
-        { name : String                  -- string username utilized
-                                         -- for identification (since our example is educational)
-        , active : Bool                  -- user activity flag (keep in mind,
-                                         -- that inactive users cannot take
-                                         -- part in voting)
-        , permissions : Array Permission -- list (array) of user rights, type Permission
-                                         -- defined as type Permission = VOTE | FORCE | NONE
+        { name : String                  -- name of the person, used for
+                                         -- identification purposes
+        , active : Bool                  -- user status flag (keep in mind,
+                                         -- that inactive users can't vote)
+        , permissions : Array Permission -- array of user's permissions. Permission type
+                                         -- defined as Permission = VOTE | FORCE | NONE
         }
 ```
 
