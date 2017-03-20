@@ -186,7 +186,7 @@ Before we delve into the essence of the expression `list userProducer`, let’s 
 
 ## Generating Random Data
 
-The expression `list userProducer` belongs to the type `Producer (List User)` that can be read as “List Member Generator”. It is achieved by applying schemer `list` (with a signature of the type `list : Producer a -> Producer (List a)`) to the generator `userProducer` (from types `Producer User`). It is easy to build a different and more complex generator on the basis of one existing generator. By the way, that is how `userProducer` was built:
+The expression `list userProducer` has the type `Producer (List User)` that can be read as “Generator of random Lists of Users”. It is achieved by applying combinator `list` (with a type signature `list : Producer a -> Producer (List a)`) to the generator `userProducer` (“Generator of random User” with type `Producer User`). It is easy to build more complex generators on top of the existing ones. By the way, that is how `userProducer` was built:
 
 ```elm
 userProducer : Producer User
@@ -196,7 +196,7 @@ userProducer =
         (tuple3 ( string, bool, list permissionProducer ))
 ```
 
-Juggling tuples (`tuple`) is only forced machinery. The main thing here is that we “explain” how to design a user by using the `create` function, utilizing two primitive generators: `string` and `bool`, as well as the result of a different combination – `list permissionProducer`. Another important peculiarity is the “explanation” of how to extract a tuple of its three components when you know the user. For this purpose we have the `toTuple` function, which by getting the user at input, returns the tuple with its three elements. 
+Juggling with tuples (`toTuple`, `tuple3`, `uncurry3`) is a necessary boilerplate machinery. The main thing here is that we “explain” how to construct a user by with `create` function, utilizing two primitive generators: `string` and `bool`, as well as the nested generator – `list permissionProducer`. Another important peculiarity is the “explanation” of how to deconstruct a user into 3-component tuple. For this purpose we have the `toTuple` function, which by getting the `user` as input and returns the tuple with three elements. 
 
 ```elm
 toTuple : User -> ( String, Bool, List Permission )
@@ -204,7 +204,7 @@ toTuple user =
     ( (name user), (active user), (permissions user) )
 ```
 
-This “knowledge” of how to “break down” the user into primitive elements helped us find bugs in the code so quickly. The names and numbers of users, the sets of privileges for each of them and all the other aspects of the counterexample seem highly unlikely: the blank user name, absence of other users in the list except for the really necessary ones, etc. The test of library code facilitated every aspect of the initial counterexample as long as it was possible, breaking each `Producer` into components, simplifying them and then collecting them back.
+This “knowledge” of how to “break down” the user into primitive elements helps find bugs in the code so quickly. The names and amount of users, their permissions and all the other aspects of the counterexample seem very “minimal”: the blank user name, absence of other users in the list except for the really necessary ones, etc. The testing library has beed simplifying every aspect of the initial counterexample until it was possible, breaking each `Producer` into parts, simplifying them and then collecting parts back.
 
 ## Fixing Code
 
@@ -239,7 +239,7 @@ locked user workflow =
             ]
 ```
 
-Thanks to fixing the implementation, the test run is successful, there are no more errors. Let’s try to formulate more invariants for verification. The last point of requirements for `workflow` states that the user should be able to vote only once at each of the steps, so let’s express this in the code. This time, let’s use a different syntactic construction: “`claim` description `that` expression `is` equivalent `for` generator”. That is, for each pair of user-operation the code attempts to apply this operation to `workflow`, at the current step of which the user with the same name has already voted. The invariant is in the fact that the `workflow` step should not change while this happens.
+Thanks to fix, the test run is now successful, there are no more errors. Let’s try to formulate more invariants for verification. The last bullet point `workflow` requirements states that the user should be able to vote only once at each of the steps, so let’s express this in the code. This time, let’s use a different syntactic construction: “`claim` description `that` expression `is` equivalent `for` generator”. That is, for each pair of user-operation the code attempts to apply this operation to `workflow`, at the step on which the user with the same name has already voted. The invariant is: current step number of the `workflow` should not be affected.
 
 ```elm
 workflowVotedByUser : User -> Workflow
@@ -257,7 +257,7 @@ claim "Same user cannot vote twice"
     |> for (tuple ( userProducer, operationProducer ))
 ```
 
-The test launch shows that the invariant is broken: there is a pair of user-operation, which, when applied, causes workflow to decrease by one.
+The test execution shows that the invariant is broken: there is a pair of user-operation, which, when applied, causes workflow step number to decrease by one.
 
 ```elm
 ✗ Same user cannot vote twice
@@ -268,7 +268,7 @@ The test launch shows that the invariant is broken: there is a pair of user-oper
     But It Was: 0
 ```
 
-And indeed, the `reject` function contains an error. The application of `locked` instead of `not User.active` saves the situation, and all tests are now green.
+And indeed, the `reject` function contains an error. Using `locked` instead of `not User.active` fixes the error, and all tests are now green.
 
 ```elm
 Running 4 tests. To reproduce these results, run: elm-test --seed 2042167370
@@ -280,12 +280,12 @@ Passed:   4
 Failed:   0
 ```
 
-## Conclusion 
+## Conclusion
 
-With just two simple invariants we managed to uncover several non-trivial problems in `workflow` implementation. It’s difficult to find them using traditional methods: developers can, and will check whether or not it’s possible to vote a second time on the same step, but it is unlikely they will try to do `reject` immediately after the vote in the unit test code. By the way, in `ruby` implementation, verified every which way by mutation testing, the same defects have shown up, which proves once again that the “silver bullet” does not exist and relying on just one way of verification is naive.
+With just two simple invariants we managed to uncover several non-trivial problems in `workflow` implementation. It’s difficult to find them using traditional methods: developers can, and will check whether or not it’s possible to vote a second time on the same step, but it is unlikely they will try to do `reject` immediately after the vote in the unit tests. By the way, in `ruby` implementation, tested by [mutant](https://github.com/mbj/mutant), the same defects have shown up, which proves once again that the “silver bullet” does not exist and relying on just one method of testing is naive.
 
-There are libraries for property-based testing not only for fully functional programming languages: for `ruby` it’s [rantly](https://github.com/abargnesi/rantly) and [propr](https://github.com/kputnam/propr), for `python` – [hypothesis](https://github.com/HypothesisWorks/hypothesis-python), for Java – [JavaQuickCheck](https://java.net/projects/quickcheck/pages/Home), etc.
+There are libraries for property-based testing not only for languages with only functional paradigm: for `ruby` it’s [rantly](https://github.com/abargnesi/rantly) and [propr](https://github.com/kputnam/propr), for `python` – [hypothesis](https://github.com/HypothesisWorks/hypothesis-python), for Java – [JavaQuickCheck](https://java.net/projects/quickcheck/pages/Home), etc.
 
-As I see it, the main obstacle for using property-based tests is not the complexity of formulating invariants (even though it's really not easy at all) and not even the lack of tools developed for some programming languages, but developers lacking awareness and knowledge. Hopefully, our example with `workflow` managed to spark interest in and draw attention to the topic of property-based testing.
+As I see it, the main obstacle for using property-based tests is not the complexity in finding good invariants (even though it's really not easy at all) and not even the lack of tools developed for some programming languages, but rather poor developers awareness and knowledge of the topic. Hopefully, our example with `workflow` managed to spark interest in and draw attention to the topic of powerfull property-based testing approach.
 
 The source code in Elm can be found in a public [repository](https://github.com/maksar/elm-workflow). 
