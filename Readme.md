@@ -191,7 +191,7 @@ claim "Workflow should remain in its bounds"
 
 ## Генерация случайных данных
 
-Выражение `list userProducer` имеет тип `Producer (List User)`, что можно прочитать как «Генератор Списка Пользователей». Он получается применением комбинатора `list` (имеющего сигнатуру типа `list : Producer a -> Producer (List a)`) к генератору `userProducer` (с типов `Producer User`). На основе одного генератора легко построить другой, более сложный. Так, между прочим, и был построен `userProducer`:
+Выражение `list userProducer` имеет тип `Producer (List User)`, что можно прочитать как «Генератор Списка Пользователей». Он получается применением комбинатора `list` (имеющего сигнатуру типа `list : Producer a -> Producer (List a)`) к генератору `userProducer` (с типом `Producer User`). На основе одного генератора легко построить другой, более сложный. Так, между прочим, и был построен `userProducer`:
 
 ```elm
 userProducer : Producer User
