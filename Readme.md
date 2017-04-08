@@ -45,7 +45,8 @@ Let's start with the definition of the most important type – `Workflow`. It’
 type alias Workflow =
     { stepsConfig : Array Int -- an array of thresholds for each step
     , currentStep : Int       -- step number, on which workflow currently is
-    , votes : Array Bucket    -- an array of a vote buckets -- users, who voted on each of the steps
+    , votes : Array Bucket    -- an array of a vote buckets 
+                              -- users, who voted on each of the steps
     }
 ```
 
